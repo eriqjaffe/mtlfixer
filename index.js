@@ -9,7 +9,9 @@ if (!fileName) {
 
 // Resolve to an absolute path
 const filePath = path.resolve(fileName);
-//console.log("Resolved file path:", filePath);
+const dirPath = path.dirname(filePath);
+console.log("Resolved file path:", filePath);
+console.log("dirname:", dirPath)
 
 //const filePath = path.join(__dirname, "mtlfix.mtl")
 const backupPath = filePath + '.bak'; // Creates a backup with ".bak" extension
@@ -222,6 +224,9 @@ fs.copyFile(filePath, backupPath, (err) => {
 
       // Apply all replacements
       let updatedContent = data;
+      let modifiedLines = []; // Array to store modified lines
+      let reps = 0;
+
       for (const { pattern, replacement } of replacements) {
           let sepLines = replacement.split(/\r?\n|\r|\n/g);
           if (pattern.test(updatedContent)) {
@@ -230,6 +235,15 @@ fs.copyFile(filePath, backupPath, (err) => {
               reps++
           } 
       }
+
+      updatedContent = updatedContent.replace(/(.*?_day)\.jpg/g, (match, p1) => {
+        let newLine = p1 + ".png";
+        modifiedLines.push(dirPath+"\\"+p1.slice(7)+".jpg"); // Store modified line
+        reps++;
+        return newLine;
+      });
+
+      console.log(modifiedLines)
 
       // Write the updated content back to the file
       fs.writeFile(filePath, updatedContent, 'utf8', (err) => {
