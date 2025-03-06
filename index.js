@@ -6,7 +6,7 @@ const Jimp = require("jimp")
 
 if (!fileName) {
     console.error("Usage: mtlfix <filename> (--night)");
-    console.error("       The --night flag is optional");
+    console.error("       The --night flag is optional, and will only create night images for converted day jpg images");
     process.exit(1);
 }
 
