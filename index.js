@@ -1,17 +1,18 @@
 const fs = require('fs');
 const path = require('path');
 const fileName = process.argv[2];
+const createNight = (process.argv[3] != null) ? process.argv[3] : ""
+const Jimp = require("jimp")
 
 if (!fileName) {
-    console.error("Usage: mtlfix <filename>");
+    console.error("Usage: mtlfix <filename> (--night)");
+    console.error("       The --night flag is optional");
     process.exit(1);
 }
 
 // Resolve to an absolute path
 const filePath = path.resolve(fileName);
-const dirPath = path.dirname(filePath);
 console.log("Resolved file path:", filePath);
-console.log("dirname:", dirPath)
 
 //const filePath = path.join(__dirname, "mtlfix.mtl")
 const backupPath = filePath + '.bak'; // Creates a backup with ".bak" extension
@@ -224,7 +225,7 @@ fs.copyFile(filePath, backupPath, (err) => {
 
       // Apply all replacements
       let updatedContent = data;
-      let modifiedLines = []; // Array to store modified lines
+      let imagesToConvert = []; // Array to store modified lines
       let reps = 0;
 
       for (const { pattern, replacement } of replacements) {
@@ -238,12 +239,30 @@ fs.copyFile(filePath, backupPath, (err) => {
 
       updatedContent = updatedContent.replace(/(.*?_day)\.jpg/g, (match, p1) => {
         let newLine = p1 + ".png";
-        modifiedLines.push(dirPath+"\\"+p1.slice(7)+".jpg"); // Store modified line
+        imagesToConvert.push(p1.slice(7)+".jpg"); // Store modified line
         reps++;
         return newLine;
       });
 
-      console.log(modifiedLines)
+      for (image of imagesToConvert) {
+        convert(image)
+
+        async function convert(image) {
+          if (fs.existsSync(image)) {
+            console.log("Converting "+image)
+            const outFile = image.substring(0, image.length - 4) + ".png"
+            const nightFile = image.substring(0, image.length - 8) + "_night.png"
+            const img = await Jimp.read(image)
+            await img.write(outFile)
+            if (createNight === "-n" || createNight === "--night") {
+              console.log("Creating night image: "+nightFile)
+              await img.brightness(-0.7);
+              await img.write(nightFile)
+            }
+
+          }
+        }
+      }
 
       // Write the updated content back to the file
       fs.writeFile(filePath, updatedContent, 'utf8', (err) => {
