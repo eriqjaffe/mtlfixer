@@ -1,8 +1,10 @@
-A simple command-line tool to modify .mtl files to add the animated crowds for OOTP Baseball custom stadiums.
+A simple command-line tool to modify .mtl files to add the animated crowds for OOTP Baseball custom stadiums, and handle _day and _night images.
 
-Requires node.js to be accessible along the system path.
+Requires node.js and yarn to be accessible along the system path.
 
 ```
+git clone https://github.com/eriqjaffe/mtlfixer && cd mtlfixer
+yarn
 cd /path/to/mtlfile  
 node ./path/to/script/index.js mtlfile.mtl (optional --night)
 ```
