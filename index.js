@@ -10,11 +10,8 @@ if (!fileName) {
     process.exit(1);
 }
 
-// Resolve to an absolute path
 const filePath = path.resolve(fileName);
-console.log("Resolved file path:", filePath);
 
-//const filePath = path.join(__dirname, "mtlfix.mtl")
 const backupPath = filePath + '.bak'; // Creates a backup with ".bak" extension
 
 const replacements = [
@@ -207,71 +204,84 @@ map_Kd ../../attendance/seating_popularity1.jpg`
   }
 ];
 
-let reps = 0;
-
-fs.copyFile(filePath, backupPath, (err) => {
+fs.copyFile(filePath, backupPath, async (err) => {
   if (err) {
       console.error('Error creating backup:', err);
       return;
   }
   console.log('Backup created:', backupPath);
 
-  // Read the file after backup
-  fs.readFile(filePath, 'utf8', (err, data) => {
+  fs.readFile(filePath, 'utf8', async (err, data) => {
       if (err) {
           console.error('Error reading file:', err);
           return;
       }
 
-      // Apply all replacements
       let updatedContent = data;
-      let imagesToConvert = []; // Array to store modified lines
-      let reps = 0;
+      let imagesToConvert = [];
+      let dayPNGs = [];
+      let tasks = [];
 
       for (const { pattern, replacement } of replacements) {
           let sepLines = replacement.split(/\r?\n|\r|\n/g);
           if (pattern.test(updatedContent)) {
               updatedContent = updatedContent.replace(pattern, replacement);
-              console.log("REPLACED: "+sepLines[0]);
-              reps++
-          } 
+              console.log("Replaced Crowd Texture: " + sepLines[0]);
+          }
       }
+
+      dayPNGs = (updatedContent.match(/.*?_day\.png/g) || []).map(line => line.slice(7));
 
       updatedContent = updatedContent.replace(/(.*?_day)\.jpg/g, (match, p1) => {
-        let newLine = p1 + ".png";
-        imagesToConvert.push(p1.slice(7)+".jpg"); // Store modified line
-        reps++;
-        return newLine;
+          let newLine = p1 + ".png";
+          imagesToConvert.push(p1.slice(7) + ".jpg");
+          return newLine;
       });
 
-      for (image of imagesToConvert) {
-        convert(image)
-
-        async function convert(image) {
-          if (fs.existsSync(image)) {
-            console.log("Converting "+image)
-            const outFile = image.substring(0, image.length - 4) + ".png"
-            const nightFile = image.substring(0, image.length - 8) + "_night.png"
-            const img = await Jimp.read(image)
-            await img.write(outFile)
-            if (createNight === "-n" || createNight === "--night") {
-              console.log("Creating night image: "+nightFile)
-              await img.brightness(-0.7);
-              await img.write(nightFile)
-            }
-
+      if (createNight === "-n" || createNight === "--night") {
+          for (const png of dayPNGs) {
+              tasks.push(makeNight(png));
           }
-        }
       }
 
-      // Write the updated content back to the file
+      for (const image of imagesToConvert) {
+          tasks.push(convert(image));
+      }
+
+      await Promise.all(tasks);
+
       fs.writeFile(filePath, updatedContent, 'utf8', (err) => {
           if (err) {
               console.error('Error writing file:', err);
           } else {
-              console.log('File updated successfully.');
-              console.log(reps +" total replacements made")
+              console.log('MTL file updated successfully.');
           }
       });
   });
 });
+
+async function makeNight(image) {
+  if (fs.existsSync(image)) {
+      const nightFile = image.substring(0, image.length - 8) + "_night.png";
+      const img = await Jimp.read(image);
+      console.log("Creating night image:", nightFile);
+      await img.brightness(-0.7);
+      await img.writeAsync(nightFile);
+  }
+}
+
+async function convert(image) {
+  if (fs.existsSync(image)) {
+      console.log("Converting:", image);
+      const outFile = image.substring(0, image.length - 4) + ".png";
+      const nightFile = image.substring(0, image.length - 8) + "_night.png";
+      const img = await Jimp.read(image);
+      await img.writeAsync(outFile);
+      fs.unlinkSync(image)
+      if (createNight === "-n" || createNight === "--night") {
+          console.log("Creating night image:", nightFile);
+          await img.brightness(-0.7);
+          await img.writeAsync(nightFile);
+      }
+  }
+}
