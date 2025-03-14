@@ -9,7 +9,7 @@ cd /path/to/mtlfile
 node ./path/to/script/index.js mtlfile.mtl (optional --night)
 ```
 
-What the script does:
+What it does:
 
 * Create a backup of the mtl file.
 * Parse the mtl file and replace matching text blocks with the corresponding 3d audience texture block.
